@@ -44,8 +44,13 @@ export async function POST(req: NextRequest) {
 
   const verification = await verifyCredential(imageBytes, mediaType, name);
 
+  // A badge/schedule printed with someone else's name is a shared screenshot, not
+  // proof this person attended. `null` means no name was visible, which we allow.
+  const nameMismatch = verification.nameMatchesClaim === false;
+  const passesVerification = verification.isValidCredential && !nameMismatch;
+
   const blob = await put(`credentials/${userId}-${Date.now()}`, imageBytes, {
-    access: "public",
+    access: "private",
     contentType: mediaType,
   });
 
@@ -64,7 +69,7 @@ export async function POST(req: NextRequest) {
     headline: buildingText.slice(0, 140),
     buildingText,
     lookingForText,
-    verified: verification.isValidCredential,
+    verified: passesVerification,
   };
 
   let dbUserId: string;
@@ -80,12 +85,17 @@ export async function POST(req: NextRequest) {
     userId: dbUserId,
     imageBlobUrl: blob.url,
     modelResponseJson: JSON.stringify(verification),
-    status: verification.isValidCredential ? "verified" : "rejected",
+    status: passesVerification ? "verified" : "rejected",
   });
 
-  if (!verification.isValidCredential) {
+  if (!passesVerification) {
     return NextResponse.json(
-      { reason: verification.reason ?? "That doesn't look like a valid Startup School credential." },
+      {
+        reason: nameMismatch
+          ? `That credential is printed with a different name (${verification.nameOnCredential}). Please upload your own badge or schedule.`
+          : verification.reason ??
+            "That doesn't look like a valid Startup School credential.",
+      },
       { status: 422 }
     );
   }

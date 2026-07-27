@@ -22,6 +22,12 @@ const verificationSchema = z.object({
     .string()
     .nullable()
     .describe("The attendee name printed on the badge/schedule, if visible."),
+  nameMatchesClaim: z
+    .boolean()
+    .nullable()
+    .describe(
+      "True if the name on the credential plausibly refers to the claimed user, allowing for nicknames, middle names, initials, and different orderings. False if it clearly belongs to someone else. Null if no name is visible on the credential."
+    ),
   sessions: z
     .array(
       z.object({
@@ -53,7 +59,7 @@ export async function verifyCredential(
         content: [
           {
             type: "text",
-            text: `The user claims their name is "${claimedName}" and this image is their YC Startup School 2026 badge, ticket, or personal YC Agent schedule screenshot. Verify this looks like a real Startup School credential (not an unrelated photo), extract the name printed on it if visible, and extract any session names listed.`,
+            text: `The user claims their name is "${claimedName}" and this image is their YC Startup School 2026 badge, ticket, or personal YC Agent schedule screenshot. Verify this looks like a real Startup School credential (not an unrelated photo), extract the name printed on it if visible, judge whether that name belongs to the claimed user, and extract any session names listed. Badges and schedules are frequently shared in group chats, so a credential printed with a clearly different person's name must not pass as the claimed user's own.`,
           },
           {
             type: "image",
