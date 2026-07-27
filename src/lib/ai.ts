@@ -1,5 +1,6 @@
 import { embed, generateObject } from "ai";
 import { z } from "zod";
+import { catalogPromptList } from "./event-catalog";
 
 const EMBEDDING_MODEL = "openai/text-embedding-3-small";
 const VISION_MODEL = "anthropic/claude-sonnet-5";
@@ -28,16 +29,11 @@ const verificationSchema = z.object({
     .describe(
       "True if the name on the credential plausibly refers to the claimed user, allowing for nicknames, middle names, initials, and different orderings. False if it clearly belongs to someone else. Null if no name is visible on the credential."
     ),
-  sessions: z
-    .array(
-      z.object({
-        name: z.string().describe("Session or speaker name, e.g. 'Jeff Dean Keynote'"),
-        type: z
-          .enum(["keynote", "breakout", "partner_meeting", "expo", "other"])
-          .describe("Best-guess category of the session."),
-      })
-    )
-    .describe("All sessions/events listed on the schedule, if this is a schedule screenshot."),
+  sessionSlugs: z
+    .array(z.string())
+    .describe(
+      "Slugs from the provided Startup School program that appear on this schedule. Use only slugs from that list; omit anything you cannot confidently map."
+    ),
   reason: z
     .string()
     .describe("Brief reason for the isValidCredential verdict."),
@@ -59,7 +55,11 @@ export async function verifyCredential(
         content: [
           {
             type: "text",
-            text: `The user claims their name is "${claimedName}" and this image is their YC Startup School 2026 badge, ticket, or personal YC Agent schedule screenshot. Verify this looks like a real Startup School credential (not an unrelated photo), extract the name printed on it if visible, judge whether that name belongs to the claimed user, and extract any session names listed. Badges and schedules are frequently shared in group chats, so a credential printed with a clearly different person's name must not pass as the claimed user's own.`,
+            text: `The user claims their name is "${claimedName}" and this image is their YC Startup School 2026 badge, ticket, or personal YC Agent schedule screenshot. Verify this looks like a real Startup School credential (not an unrelated photo), extract the name printed on it if visible, and judge whether that name belongs to the claimed user. Badges and schedules are frequently shared in group chats, so a credential printed with a clearly different person's name must not pass as the claimed user's own.
+
+Then map every session on the schedule onto this official Startup School 2026 program. Return only the matching slugs, and skip anything you cannot confidently match (meals, transitions, and arrivals have no slug):
+
+${catalogPromptList()}`,
           },
           {
             type: "image",

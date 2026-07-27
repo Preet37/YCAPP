@@ -16,6 +16,7 @@ export const sessionTypeEnum = pgEnum("session_type", [
   "breakout",
   "partner_meeting",
   "expo",
+  "after_party",
   "other",
 ]);
 

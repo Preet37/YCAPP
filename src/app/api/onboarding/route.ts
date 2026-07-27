@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { put } from "@vercel/blob";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { sessions, userSessions, users, verifications } from "@/lib/db/schema";
 import { embedProfile, verifyCredential } from "@/lib/ai";
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+import { ALL_CATALOG_SESSIONS } from "@/lib/event-catalog";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -100,28 +93,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  for (const session of verification.sessions) {
-    const slug = slugify(session.name);
-    if (!slug) continue;
+  // Sessions the model read off the schedule, plus after-parties the user picked by hand
+  // (those never appear on the YC Agent schedule, but they are the strongest signal for
+  // who is standing in the same room tonight).
+  const knownSlugs = new Set(ALL_CATALOG_SESSIONS.map((s) => s.slug));
+  const claimedSlugs = new Set(
+    [...verification.sessionSlugs, ...formData.getAll("afterParties").map(String)].filter(
+      (slug) => knownSlugs.has(slug)
+    )
+  );
 
-    const [existingSession] = await db
-      .select({ id: sessions.id })
+  if (claimedSlugs.size) {
+    const rows = await db
+      .select({ id: sessions.id, slug: sessions.slug })
       .from(sessions)
-      .where(eq(sessions.slug, slug));
+      .where(inArray(sessions.slug, [...claimedSlugs]));
 
-    const sessionId = existingSession
-      ? existingSession.id
-      : (
-          await db
-            .insert(sessions)
-            .values({ name: session.name, slug, type: session.type })
-            .returning({ id: sessions.id })
-        )[0].id;
-
-    await db
-      .insert(userSessions)
-      .values({ userId: dbUserId, sessionId })
-      .onConflictDoNothing();
+    for (const row of rows) {
+      await db
+        .insert(userSessions)
+        .values({ userId: dbUserId, sessionId: row.id })
+        .onConflictDoNothing();
+    }
   }
 
   const embedding = await embedProfile(buildingText, lookingForText);

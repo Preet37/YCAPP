@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AFTER_PARTIES } from "@/lib/event-catalog";
+
+const DAY_2_PARTIES = AFTER_PARTIES.filter((p) => p.day === 2);
+const DAY_1_PARTIES = AFTER_PARTIES.filter((p) => p.day === 1);
 
 type SubmitState = "idle" | "submitting" | "rejected" | "error";
 
@@ -75,6 +79,36 @@ export default function OnboardingPage() {
           </p>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Which after-parties are you at?
+          </label>
+          <p className="text-xs text-muted mb-3">
+            Optional, but it&apos;s the fastest way to find people you can actually
+            walk up to tonight.
+          </p>
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">
+            Tonight
+          </p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {DAY_2_PARTIES.map((p) => (
+              <PartyToggle key={p.slug} slug={p.slug} label={p.name.replace("Day 2 · ", "")} />
+            ))}
+          </div>
+
+          <details>
+            <summary className="text-xs font-semibold uppercase tracking-wide text-muted cursor-pointer mb-2">
+              Last night ({DAY_1_PARTIES.length})
+            </summary>
+            <div className="flex flex-wrap gap-2 pt-2">
+              {DAY_1_PARTIES.map((p) => (
+                <PartyToggle key={p.slug} slug={p.slug} label={p.name.replace("Day 1 · ", "")} />
+              ))}
+            </div>
+          </details>
+        </div>
+
         {state === "rejected" && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
             {rejectionReason}
@@ -95,6 +129,22 @@ export default function OnboardingPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+function PartyToggle({ slug, label }: { slug: string; label: string }) {
+  return (
+    <label className="cursor-pointer">
+      <input
+        type="checkbox"
+        name="afterParties"
+        value={slug}
+        className="peer sr-only"
+      />
+      <span className="inline-block rounded-full border border-border px-3.5 py-1.5 text-sm transition-colors peer-checked:bg-yc-orange peer-checked:text-white peer-checked:border-yc-orange hover:border-yc-orange/60">
+        {label}
+      </span>
+    </label>
   );
 }
 
