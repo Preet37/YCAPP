@@ -17,6 +17,47 @@ export default function OnboardingPage() {
   const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [github, setGithub] = useState("");
+  const [pulling, setPulling] = useState(false);
+  const [pullNote, setPullNote] = useState<string | null>(null);
+  const [bio, setBio] = useState("");
+  const [website, setWebsite] = useState("");
+  const [xUrl, setXUrl] = useState("");
+  const [interests, setInterests] = useState("");
+
+  async function pullGithub() {
+    setPulling(true);
+    setPullNote(null);
+    try {
+      const res = await fetch("/api/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ githubUsername: github }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setPullNote(data.error ?? "Couldn't read that profile.");
+        return;
+      }
+
+      // Suggestions only — fill blanks, never overwrite what they already typed.
+      const p = data.profile;
+      if (p.bio && !bio) setBio(p.bio);
+      if (p.websiteUrl && !website) setWebsite(p.websiteUrl);
+      if (p.xUrl && !xUrl) setXUrl(p.xUrl);
+      if (p.languages?.length && !interests) setInterests(p.languages.join(", "));
+
+      setPullNote(
+        `Found @${p.username} — ${p.publicRepos} repos, ${p.followers} followers. Check what filled in below and change anything that's off.`
+      );
+    } catch {
+      setPullNote("Couldn't reach GitHub. Fill the fields in yourself.");
+    } finally {
+      setPulling(false);
+    }
+  }
+
   function handleFile(file: File | undefined) {
     if (!file) return;
     setPreview({ url: URL.createObjectURL(file), name: file.name });
@@ -86,6 +127,76 @@ export default function OnboardingPage() {
               type="url"
               required
               placeholder="https://linkedin.com/in/you"
+              className="w-full border border-hairline bg-surface px-4 py-3 text-sm focus:outline-none focus:border-orange transition-colors"
+            />
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="code text-slate mb-1">Where else you live</legend>
+          <p className="text-xs text-slate mb-4 leading-relaxed">
+            Optional. Add your GitHub and pull the rest in — we read your public
+            GitHub profile and fill the fields below. Edit or clear anything
+            before you save; nothing is published until you do.
+          </p>
+
+          <div className="flex gap-2 mb-4">
+            <input
+              name="githubUsername"
+              value={github}
+              onChange={(e) => setGithub(e.target.value)}
+              placeholder="github username"
+              className="flex-1 border border-hairline bg-surface px-4 py-3 text-sm focus:outline-none focus:border-orange transition-colors"
+            />
+            <button
+              type="button"
+              onClick={pullGithub}
+              disabled={!github.trim() || pulling}
+              className="code border border-graphite px-4 hover:bg-graphite hover:text-concrete transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {pulling ? "Reading…" : "Pull it in"}
+            </button>
+          </div>
+
+          {pullNote && (
+            <p className="text-xs mb-4 border-l-2 border-orange bg-orange-wash px-3 py-2 leading-relaxed">
+              {pullNote}
+            </p>
+          )}
+
+          <div className="space-y-3">
+            <textarea
+              name="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              rows={3}
+              placeholder="A short bio — what you've worked on, what you know well"
+              className="w-full border border-hairline bg-surface px-4 py-3 text-sm resize-none focus:outline-none focus:border-orange transition-colors"
+            />
+            <input
+              name="websiteUrl"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="Personal site"
+              className="w-full border border-hairline bg-surface px-4 py-3 text-sm focus:outline-none focus:border-orange transition-colors"
+            />
+            <input
+              name="xUrl"
+              value={xUrl}
+              onChange={(e) => setXUrl(e.target.value)}
+              placeholder="X profile"
+              className="w-full border border-hairline bg-surface px-4 py-3 text-sm focus:outline-none focus:border-orange transition-colors"
+            />
+            <input
+              name="devpostUrl"
+              placeholder="Devpost"
+              className="w-full border border-hairline bg-surface px-4 py-3 text-sm focus:outline-none focus:border-orange transition-colors"
+            />
+            <input
+              name="interests"
+              value={interests}
+              onChange={(e) => setInterests(e.target.value)}
+              placeholder="Interests, comma separated — robotics, compilers, climate"
               className="w-full border border-hairline bg-surface px-4 py-3 text-sm focus:outline-none focus:border-orange transition-colors"
             />
           </div>

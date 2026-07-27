@@ -6,6 +6,7 @@ import { getDb } from "@/lib/db";
 import { sessions, userSessions, users, verifications } from "@/lib/db/schema";
 import { embedProfile, verifyCredential } from "@/lib/ai";
 import { ALL_CATALOG_SESSIONS } from "@/lib/event-catalog";
+import { fetchGithubProfile } from "@/lib/github";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -73,6 +74,16 @@ async function handleOnboarding(
     .from(users)
     .where(eq(users.clerkUserId, userId));
 
+  // Only fetched when the person supplied their own handle, and only ever their
+  // own public profile.
+  const githubUsername = String(formData.get("githubUsername") ?? "").trim();
+  const githubProfile = githubUsername ? await fetchGithubProfile(githubUsername) : null;
+
+  const interests = String(formData.get("interests") ?? "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
   const userValues = {
     clerkUserId: userId,
     name,
@@ -81,6 +92,13 @@ async function handleOnboarding(
     headline: buildingText.slice(0, 140),
     buildingText,
     lookingForText,
+    bio: String(formData.get("bio") ?? "").trim() || null,
+    githubUsername: githubProfile?.username ?? (githubUsername || null),
+    githubData: githubProfile ? JSON.stringify(githubProfile) : null,
+    websiteUrl: String(formData.get("websiteUrl") ?? "").trim() || null,
+    xUrl: String(formData.get("xUrl") ?? "").trim() || null,
+    devpostUrl: String(formData.get("devpostUrl") ?? "").trim() || null,
+    interests: interests.length ? interests : null,
     verified: passesVerification,
   };
 

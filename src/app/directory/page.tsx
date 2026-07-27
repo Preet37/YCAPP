@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { TrackStrip } from "@/components/overlap-track";
 
 type Room = { slug: string; name: string; type: string };
@@ -100,11 +101,12 @@ export default function DirectoryPage() {
       ) : (
         <ul className="grid gap-3">
           {people.map((person) => (
-            <li
-              key={person.id}
-              className="group bg-surface border border-hairline p-5 hover:border-orange transition-colors"
-            >
-              <div className="flex gap-4">
+            <li key={person.id}>
+              <Link
+                href={`/p/${person.id}`}
+                className="block bg-surface border border-hairline p-5 hover:border-orange transition-colors"
+              >
+                <div className="flex gap-4">
                 {person.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -131,16 +133,7 @@ export default function DirectoryPage() {
                         </p>
                       )}
                     </div>
-                    {person.linkedinUrl && (
-                      <a
-                        href={person.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="code text-slate hover:text-orange transition-colors flex-shrink-0"
-                      >
-                        LinkedIn ↗
-                      </a>
-                    )}
+                    <span className="code text-slate flex-shrink-0">View →</span>
                   </div>
 
                   {person.buildingText && (
@@ -154,15 +147,16 @@ export default function DirectoryPage() {
                     </p>
                   )}
 
-                  {person.sessions.length > 0 && (
-                    <TrackStrip
-                      slugs={person.sessions.map((s) => s.slug)}
-                      sharedSlugs={person.sharedSlugs}
-                      className="mt-3.5"
-                    />
-                  )}
+                    {person.sessions.length > 0 && (
+                      <TrackStrip
+                        slugs={person.sessions.map((s) => s.slug)}
+                        sharedSlugs={person.sharedSlugs}
+                        className="mt-3.5"
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
+              </Link>
             </li>
           ))}
         </ul>

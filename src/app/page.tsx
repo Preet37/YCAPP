@@ -3,16 +3,20 @@ import { hasClerkKeys } from "@/lib/clerk-enabled";
 
 /**
  * The hero argument is the product: two schedules laid over each other, with the
- * rooms you were both in lit. Everything else on the page stays quiet.
+ * rooms both people were in lit.
+ *
+ * These two tracks are a worked example, not anyone's real schedule, so they are
+ * labelled as such and neither is captioned "you" — a fabricated schedule
+ * presented as the reader's own would be a lie about their own data.
  */
-const YOUR_DAY = [
+const ATTENDEE_A = [
   { code: "D1R1", room: "Garry Tan", side: "EAST", shared: false },
   { code: "D1R2", room: "Dmitri Dolgov", side: "WEST", shared: true },
   { code: "D1R3", room: "Susan Kare", side: "WEST", shared: true },
   { code: "D2R1", room: "Peter Steinberger", side: "WEST", shared: false },
 ];
 
-const THEIR_DAY = [
+const ATTENDEE_B = [
   { code: "D1R1", room: "Jeff Dean", side: "WEST", shared: false },
   { code: "D1R2", room: "Dmitri Dolgov", side: "WEST", shared: true },
   { code: "D1R3", room: "Susan Kare", side: "WEST", shared: true },
@@ -76,10 +80,14 @@ export default function Home() {
 
       {/* The signature: two days, overlaid. */}
       <section className="max-w-5xl mx-auto px-6 py-16">
+        <p className="code text-slate mb-8">
+          Example · two attendees, not real schedules
+        </p>
+
         <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
           <div className="space-y-8">
-            <DayTrack label="You" rows={YOUR_DAY} tone="self" />
-            <DayTrack label="Ada Radcliffe" rows={THEIR_DAY} tone="other" />
+            <DayTrack label="Attendee A" rows={ATTENDEE_A} tone="self" />
+            <DayTrack label="Attendee B" rows={ATTENDEE_B} tone="other" />
           </div>
 
           <div className="lg:border-l lg:border-hairline lg:pl-10">
@@ -88,6 +96,9 @@ export default function Home() {
             <p className="text-sm text-slate mt-4 max-w-[15rem] leading-relaxed">
               Dolgov and Kare, both West. Enough to open with something better
               than &ldquo;what do you do?&rdquo;
+            </p>
+            <p className="text-sm text-slate mt-4 max-w-[15rem] leading-relaxed">
+              Yours gets built from your own schedule once you join.
             </p>
           </div>
         </div>
@@ -102,7 +113,7 @@ function DayTrack({
   tone,
 }: {
   label: string;
-  rows: typeof YOUR_DAY;
+  rows: typeof ATTENDEE_A;
   tone: "self" | "other";
 }) {
   return (
