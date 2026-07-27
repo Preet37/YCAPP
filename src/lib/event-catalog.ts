@@ -1,5 +1,5 @@
 /**
- * The published Startup School 2026 program (Sat Jul 26 – Sun Jul 27, Chase Center).
+ * The published Startup School 2026 program (Sat Jul 25 – Sun Jul 26, Chase Center).
  *
  * Seeding the real program rather than letting the vision model invent session names
  * keeps slugs canonical, so "Arena Breakout: Jeff Dean" and "Jeff Dean (West)" collapse
@@ -54,7 +54,7 @@ export const EVENT_SESSIONS: CatalogSession[] = [
 
 /** After-parties required separate per-day signup, so they are strong co-location signals. */
 export const AFTER_PARTIES: CatalogSession[] = [
-  // Day 2 (tonight) — hosted by YC's cloud & AI partners
+  // Day 2 (Sun Jul 26) — hosted by YC's cloud & AI partners
   { name: "Day 2 · AWS After Party", slug: "ap2-aws", type: "after_party", day: 2, highSignal: true },
   { name: "Day 2 · Microsoft After Party", slug: "ap2-microsoft", type: "after_party", day: 2, highSignal: true },
   { name: "Day 2 · Google DeepMind After Party", slug: "ap2-google-deepmind", type: "after_party", day: 2, highSignal: true },

@@ -13,6 +13,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [state, setState] = useState<SubmitState>("idle");
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,6 +39,8 @@ export default function OnboardingPage() {
       return;
     }
 
+    const detail = await res.json().catch(() => null);
+    setErrorDetail(detail?.detail ?? null);
     setState("error");
   }
 
@@ -81,15 +84,15 @@ export default function OnboardingPage() {
 
         <div>
           <label className="block text-sm font-medium mb-1">
-            Which after-parties are you at?
+            Which after-parties did you go to?
           </label>
           <p className="text-xs text-muted mb-3">
-            Optional, but it&apos;s the fastest way to find people you can actually
-            walk up to tonight.
+            Optional — but this is how you find the people you actually stood next
+            to and never got a name from.
           </p>
 
           <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">
-            Tonight
+            Day 2 · Sunday
           </p>
           <div className="flex flex-wrap gap-2 mb-4">
             {DAY_2_PARTIES.map((p) => (
@@ -99,7 +102,7 @@ export default function OnboardingPage() {
 
           <details>
             <summary className="text-xs font-semibold uppercase tracking-wide text-muted cursor-pointer mb-2">
-              Last night ({DAY_1_PARTIES.length})
+              Day 1 · Saturday ({DAY_1_PARTIES.length})
             </summary>
             <div className="flex flex-wrap gap-2 pt-2">
               {DAY_1_PARTIES.map((p) => (
@@ -115,9 +118,14 @@ export default function OnboardingPage() {
           </p>
         )}
         {state === "error" && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            Something went wrong. Try again.
-          </p>
+          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+            <p>Something went wrong. Try again.</p>
+            {errorDetail && (
+              <p className="mt-1 font-mono text-xs opacity-80 break-words">
+                {errorDetail}
+              </p>
+            )}
+          </div>
         )}
 
         <button

@@ -17,6 +17,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  try {
+    return await handleOnboarding(req, userId, clerkUser);
+  } catch (error) {
+    // An opaque "something went wrong" costs a signup, and every one of these is a
+    // person standing in a hallway deciding whether the app is broken.
+    console.error("[onboarding] failed", error);
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: "Onboarding failed", detail: message },
+      { status: 500 }
+    );
+  }
+}
+
+async function handleOnboarding(
+  req: NextRequest,
+  userId: string,
+  clerkUser: NonNullable<Awaited<ReturnType<typeof currentUser>>>
+) {
   const formData = await req.formData();
   const buildingText = String(formData.get("buildingText") ?? "");
   const lookingForText = String(formData.get("lookingForText") ?? "");
@@ -94,8 +113,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Sessions the model read off the schedule, plus after-parties the user picked by hand
-  // (those never appear on the YC Agent schedule, but they are the strongest signal for
-  // who is standing in the same room tonight).
+  // (those never appear on the YC Agent schedule, but a party of a few dozen people is a
+  // far tighter co-location signal than a 6,000-person Center Court session).
   const knownSlugs = new Set(ALL_CATALOG_SESSIONS.map((s) => s.slug));
   const claimedSlugs = new Set(
     [...verification.sessionSlugs, ...formData.getAll("afterParties").map(String)].filter(
