@@ -1,17 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Source_Serif_4 } from "next/font/google";
+import { Archivo, Public_Sans, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { hasClerkKeys } from "@/lib/clerk-enabled";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+// Archivo carries a width axis, which is what makes the headline read as arena
+// signage rather than another geometric sans.
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  axes: ["wdth"],
+});
+
+const publicSans = Public_Sans({
+  variable: "--font-public-sans",
   subsets: ["latin"],
 });
 
-const sourceSerif = Source_Serif_4({
-  variable: "--font-source-serif",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
 });
 
@@ -32,7 +40,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ff6600",
+  themeColor: "#ff5c00",
 };
 
 export default function RootLayout({
@@ -43,9 +51,9 @@ export default function RootLayout({
   const body = (
     <html
       lang="en"
-      className={`${outfit.variable} ${sourceSerif.variable} h-full antialiased`}
+      className={`${archivo.variable} ${publicSans.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="min-h-full flex flex-col bg-concrete text-graphite">
         <SiteHeader />
         {children}
       </body>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { and, eq, ilike, or, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { sessions, userSessions, users } from "@/lib/db/schema";
 
@@ -23,6 +23,17 @@ export async function GET(req: NextRequest) {
       selfDbId = self.id;
       selfEmbedding = self.embedding as unknown as number[] | null;
     }
+  }
+
+  // The viewer's own rooms, which is what every other track is measured against.
+  const mySlugs = new Set<string>();
+  if (selfDbId) {
+    const rows = await db
+      .select({ slug: sessions.slug })
+      .from(userSessions)
+      .innerJoin(sessions, eq(userSessions.sessionId, sessions.id))
+      .where(eq(userSessions.userId, selfDbId));
+    for (const row of rows) mySlugs.add(row.slug);
   }
 
   const filters = [eq(users.verified, true)];
@@ -73,7 +84,51 @@ export async function GET(req: NextRequest) {
     ? results.filter((r) => sessionUserIds!.has(r.id))
     : results;
 
+  // One round-trip for every listed person's rooms, rather than a query per card.
+  const roomsByUser = new Map<string, { slug: string; name: string; type: string }[]>();
+  if (filtered.length) {
+    const rows = await db
+      .select({
+        userId: userSessions.userId,
+        slug: sessions.slug,
+        name: sessions.name,
+        type: sessions.type,
+      })
+      .from(userSessions)
+      .innerJoin(sessions, eq(userSessions.sessionId, sessions.id))
+      .where(
+        inArray(
+          userSessions.userId,
+          filtered.map((r) => r.id)
+        )
+      );
+    for (const row of rows) {
+      const list = roomsByUser.get(row.userId) ?? [];
+      list.push({ slug: row.slug, name: row.name, type: row.type });
+      roomsByUser.set(row.userId, list);
+    }
+  }
+
+  const people = filtered.map((person) => {
+    const rooms = roomsByUser.get(person.id) ?? [];
+    return {
+      ...person,
+      sessions: rooms,
+      sharedSlugs: rooms.filter((r) => mySlugs.has(r.slug)).map((r) => r.slug),
+    };
+  });
+
+  // Surface the people you actually stood next to first: shared rooms outrank a
+  // marginally closer embedding, since co-location is the thing you can act on.
+  if (mySlugs.size) {
+    people.sort((a, b) => b.sharedSlugs.length - a.sharedSlugs.length);
+  }
+
   const allSessions = await db.select().from(sessions).orderBy(sessions.name);
 
-  return NextResponse.json({ people: filtered, sessions: allSessions });
+  return NextResponse.json({
+    people,
+    sessions: allSessions,
+    mySessionSlugs: [...mySlugs],
+  });
 }

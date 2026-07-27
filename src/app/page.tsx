@@ -1,68 +1,138 @@
 import Link from "next/link";
 import { hasClerkKeys } from "@/lib/clerk-enabled";
 
+/**
+ * The hero argument is the product: two schedules laid over each other, with the
+ * rooms you were both in lit. Everything else on the page stays quiet.
+ */
+const YOUR_DAY = [
+  { code: "D1R1", room: "Garry Tan", side: "EAST", shared: false },
+  { code: "D1R2", room: "Dmitri Dolgov", side: "WEST", shared: true },
+  { code: "D1R3", room: "Susan Kare", side: "WEST", shared: true },
+  { code: "D2R1", room: "Peter Steinberger", side: "WEST", shared: false },
+];
+
+const THEIR_DAY = [
+  { code: "D1R1", room: "Jeff Dean", side: "WEST", shared: false },
+  { code: "D1R2", room: "Dmitri Dolgov", side: "WEST", shared: true },
+  { code: "D1R3", room: "Susan Kare", side: "WEST", shared: true },
+  { code: "D2R1", room: "Max Junestrand", side: "EAST", shared: false },
+];
+
 export default function Home() {
   return (
-    <main className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center gap-8">
-      <span className="rounded-full bg-yc-orange-light text-yc-orange-dark text-sm font-medium px-4 py-1.5 border border-yc-orange/20">
-        Built for YC Startup School 2026
-      </span>
+    <main className="flex-1 w-full">
+      <section className="max-w-5xl mx-auto px-6 pt-16 pb-20 sm:pt-24">
+        <p className="code text-slate animate-rise" style={{ animationDelay: "0ms" }}>
+          Jul 25–26 · Chase Center · 6,000 builders
+        </p>
 
-      <h1 className="font-serif text-4xl sm:text-5xl md:text-6xl font-medium max-w-3xl leading-tight">
-        You shared a room with them.{" "}
-        <span className="text-yc-orange">Now find them.</span>
-      </h1>
-
-      <p className="max-w-xl text-lg text-muted">
-        Batch matches Startup School attendees by what you&apos;re building, who
-        you want to meet, and the sessions you were both in — Jeff Dean&apos;s
-        keynote, your partner meeting, the breakout no one could talk in.
-      </p>
-
-      <div className="flex flex-col sm:flex-row gap-3 items-center">
-        {hasClerkKeys ? (
-          <Link
-            href="/onboarding"
-            className="rounded-full bg-yc-orange text-white font-semibold px-8 py-3 hover:bg-yc-orange-dark transition-colors"
-          >
-            Sign in with LinkedIn
-          </Link>
-        ) : (
-          <span className="rounded-full bg-background-alt border border-border text-muted px-8 py-3 text-sm">
-            Sign-in is being configured — check back shortly.
-          </span>
-        )}
-        <Link
-          href="/directory"
-          className="rounded-full border border-border px-8 py-3 font-medium hover:bg-background-alt transition-colors"
+        <h1
+          className="display text-[clamp(2.75rem,10.5vw,8.25rem)] mt-5 animate-rise"
+          style={{ animationDelay: "70ms" }}
         >
-          Browse the directory
-        </Link>
-      </div>
+          You were in
+          <br />
+          the same
+          <br />
+          <span className="text-orange">room.</span>
+        </h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mt-8 text-left">
-        <Feature
-          title="Verified attendees only"
-          body="Upload your badge or schedule — we verify it's real before you're listed."
-        />
-        <Feature
-          title="Matched, not just listed"
-          body="Ranked by what you're building and who you want to meet, not a raw feed."
-        />
-        <Feature
-          title="Session-aware"
-          body="Filter by the exact keynote, breakout, or partner meeting you attended."
-        />
-      </div>
+        <p
+          className="mt-8 max-w-lg text-lg text-slate leading-relaxed animate-rise"
+          style={{ animationDelay: "140ms" }}
+        >
+          Thirty thousand applied. Six thousand got in. You talked to maybe
+          twenty, and got the name of maybe five. Batch finds the rest — by the
+          rooms you were both standing in.
+        </p>
+
+        <div
+          className="mt-10 flex flex-col sm:flex-row gap-3 animate-rise"
+          style={{ animationDelay: "200ms" }}
+        >
+          {hasClerkKeys ? (
+            <Link
+              href="/onboarding"
+              className="inline-flex items-center justify-center bg-orange text-white font-semibold px-8 py-4 hover:bg-orange-deep transition-colors"
+            >
+              Sign in with LinkedIn
+            </Link>
+          ) : (
+            <span className="inline-flex items-center bg-surface border border-hairline text-slate px-8 py-4 text-sm">
+              Sign-in is being configured.
+            </span>
+          )}
+          <Link
+            href="/directory"
+            className="inline-flex items-center justify-center border border-graphite px-8 py-4 font-semibold hover:bg-graphite hover:text-concrete transition-colors"
+          >
+            Browse the directory
+          </Link>
+        </div>
+      </section>
+
+      <div className="floor-rule max-w-5xl mx-auto" />
+
+      {/* The signature: two days, overlaid. */}
+      <section className="max-w-5xl mx-auto px-6 py-16">
+        <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="space-y-8">
+            <DayTrack label="You" rows={YOUR_DAY} tone="self" />
+            <DayTrack label="Ada Radcliffe" rows={THEIR_DAY} tone="other" />
+          </div>
+
+          <div className="lg:border-l lg:border-hairline lg:pl-10">
+            <p className="display text-6xl text-orange">2</p>
+            <p className="code text-slate mt-2">Rooms in common</p>
+            <p className="text-sm text-slate mt-4 max-w-[15rem] leading-relaxed">
+              Dolgov and Kare, both West. Enough to open with something better
+              than &ldquo;what do you do?&rdquo;
+            </p>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
 
-function Feature({ title, body }: { title: string; body: string }) {
+function DayTrack({
+  label,
+  rows,
+  tone,
+}: {
+  label: string;
+  rows: typeof YOUR_DAY;
+  tone: "self" | "other";
+}) {
   return (
-    <div className="rounded-2xl bg-card border border-border p-5">
-      <h3 className="font-semibold mb-1.5">{title}</h3>
-      <p className="text-sm text-muted">{body}</p>
+    <div>
+      <p className="code text-slate mb-3">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {rows.map((row, i) => (
+          <div
+            key={row.code}
+            className={[
+              "animate-ignite border px-3 py-2.5 min-w-[8.5rem]",
+              row.shared
+                ? "bg-orange border-orange text-white"
+                : tone === "self"
+                  ? "bg-electric-wash border-electric/25 text-graphite"
+                  : "bg-surface border-hairline text-graphite",
+            ].join(" ")}
+            style={{ animationDelay: `${260 + i * 90}ms` }}
+          >
+            <span
+              className={`code block ${row.shared ? "text-white/75" : "text-slate"}`}
+            >
+              {row.code} · {row.side}
+            </span>
+            <span className="block text-sm font-semibold mt-1 leading-tight">
+              {row.room}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

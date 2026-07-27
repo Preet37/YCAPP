@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AFTER_PARTIES } from "@/lib/event-catalog";
 
@@ -14,17 +14,23 @@ export default function OnboardingPage() {
   const [state, setState] = useState<SubmitState>("idle");
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [errorDetail, setErrorDetail] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handleFile(file: File | undefined) {
+    if (!file) return;
+    setPreview({ url: URL.createObjectURL(file), name: file.name });
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setState("submitting");
     setRejectionReason(null);
-
-    const formData = new FormData(e.currentTarget);
+    setErrorDetail(null);
 
     const res = await fetch("/api/onboarding", {
       method: "POST",
-      body: formData,
+      body: new FormData(e.currentTarget),
     });
 
     if (res.ok) {
@@ -35,7 +41,7 @@ export default function OnboardingPage() {
     if (res.status === 422) {
       const data = await res.json();
       setState("rejected");
-      setRejectionReason(data.reason ?? "We couldn't verify that credential.");
+      setRejectionReason(data.reason ?? "That credential could not be verified.");
       return;
     }
 
@@ -45,83 +51,137 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="flex-1 max-w-xl mx-auto w-full px-6 py-12">
-      <h1 className="font-serif text-3xl font-medium mb-2">
-        Tell us who you are
+    <main className="flex-1 max-w-2xl mx-auto w-full px-6 py-14">
+      <p className="code text-slate">Step 1 of 1</p>
+      <h1 className="display text-5xl sm:text-6xl mt-3">
+        Claim your <span className="text-orange">seat.</span>
       </h1>
-      <p className="text-muted mb-8">
-        Two questions, one photo. That&apos;s it.
+      <p className="text-slate mt-4 max-w-md leading-relaxed">
+        Two answers and one screenshot. The screenshot is how we know you were
+        actually there, and it&apos;s what maps you to the rooms you sat in.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <Field
-          label="What are you building?"
-          name="buildingText"
-          placeholder="An AI copilot for radiologists"
-        />
-        <Field
-          label="Who do you need to meet?"
-          name="lookingForText"
-          placeholder="A technical cofounder with ML infra experience"
-        />
-        <Field label="Your LinkedIn URL" name="linkedinUrl" placeholder="https://linkedin.com/in/you" />
+      <div className="floor-rule my-10" />
 
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Upload your badge or YC Agent schedule screenshot
+      <form onSubmit={handleSubmit} className="flex flex-col gap-10">
+        <fieldset className="space-y-5">
+          <legend className="code text-slate mb-4">Your work</legend>
+          <Field
+            label="What are you building?"
+            name="buildingText"
+            placeholder="A physical-AI pipeline for data automation"
+          />
+          <Field
+            label="Who do you need to meet?"
+            name="lookingForText"
+            placeholder="A cofounder who is self-aware about the hard parts"
+          />
+          <div>
+            <label htmlFor="linkedinUrl" className="block text-sm font-semibold mb-2">
+              Your LinkedIn
+            </label>
+            <input
+              id="linkedinUrl"
+              name="linkedinUrl"
+              type="url"
+              required
+              placeholder="https://linkedin.com/in/you"
+              className="w-full border border-hairline bg-surface px-4 py-3 text-sm focus:outline-none focus:border-orange transition-colors"
+            />
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="code text-slate mb-4">Your proof</legend>
+
+          <label
+            htmlFor="credentialImage"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer.files?.[0];
+              if (file && fileRef.current) {
+                const dt = new DataTransfer();
+                dt.items.add(file);
+                fileRef.current.files = dt.files;
+                handleFile(file);
+              }
+            }}
+            className="flex items-center gap-4 border border-dashed border-hairline bg-surface p-5 cursor-pointer hover:border-orange transition-colors"
+          >
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={preview.url}
+                alt=""
+                className="w-16 h-16 object-cover flex-shrink-0 border border-hairline"
+              />
+            ) : (
+              <span className="w-16 h-16 flex-shrink-0 bg-concrete-deep flex items-center justify-center">
+                <span className="display text-2xl text-slate">+</span>
+              </span>
+            )}
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold">
+                {preview ? preview.name : "Add your badge or YC Agent schedule"}
+              </span>
+              <span className="block text-xs text-slate mt-1 leading-relaxed">
+                {preview
+                  ? "Tap to replace"
+                  : "Drop a screenshot, or tap to choose one. It stays private — only you and the check ever see it."}
+              </span>
+            </span>
           </label>
           <input
+            ref={fileRef}
+            id="credentialImage"
             type="file"
             name="credentialImage"
             accept="image/*"
             required
-            className="block w-full text-sm border border-border rounded-xl p-3 file:mr-3 file:rounded-full file:border-0 file:bg-yc-orange file:text-white file:px-4 file:py-2 file:font-medium"
+            onChange={(e) => handleFile(e.target.files?.[0])}
+            className="sr-only"
           />
-          <p className="text-xs text-muted mt-1.5">
-            This is how we verify you actually attended — no YC API needed.
-          </p>
-        </div>
+        </fieldset>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Which after-parties did you go to?
-          </label>
-          <p className="text-xs text-muted mb-3">
-            Optional — but this is how you find the people you actually stood next
-            to and never got a name from.
+        <fieldset>
+          <legend className="code text-slate mb-1">After-parties</legend>
+          <p className="text-xs text-slate mb-4 leading-relaxed">
+            Optional. A party of forty is a much tighter room than a keynote of
+            six thousand, so this is where the good matches come from.
           </p>
 
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted mb-2">
-            Day 2 · Sunday
-          </p>
-          <div className="flex flex-wrap gap-2 mb-4">
+          <p className="code text-slate mb-2.5">Sunday</p>
+          <div className="flex flex-wrap gap-1.5 mb-6">
             {DAY_2_PARTIES.map((p) => (
               <PartyToggle key={p.slug} slug={p.slug} label={p.name.replace("Day 2 · ", "")} />
             ))}
           </div>
 
-          <details>
-            <summary className="text-xs font-semibold uppercase tracking-wide text-muted cursor-pointer mb-2">
-              Day 1 · Saturday ({DAY_1_PARTIES.length})
+          <details className="group">
+            <summary className="code text-slate cursor-pointer hover:text-graphite transition-colors list-none">
+              Saturday · {DAY_1_PARTIES.length} parties
+              <span className="ml-2 group-open:hidden">+</span>
+              <span className="ml-2 hidden group-open:inline">−</span>
             </summary>
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-1.5 pt-3">
               {DAY_1_PARTIES.map((p) => (
                 <PartyToggle key={p.slug} slug={p.slug} label={p.name.replace("Day 1 · ", "")} />
               ))}
             </div>
           </details>
-        </div>
+        </fieldset>
 
         {state === "rejected" && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          <p className="text-sm border-l-2 border-orange bg-orange-wash px-4 py-3 leading-relaxed">
             {rejectionReason}
           </p>
         )}
         {state === "error" && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <p>Something went wrong. Try again.</p>
+          <div className="text-sm border-l-2 border-orange bg-orange-wash px-4 py-3">
+            <p>That didn&apos;t go through. Try again.</p>
             {errorDetail && (
-              <p className="mt-1 font-mono text-xs opacity-80 break-words">
+              <p className="mt-1.5 font-mono text-xs text-slate break-words">
                 {errorDetail}
               </p>
             )}
@@ -131,9 +191,9 @@ export default function OnboardingPage() {
         <button
           type="submit"
           disabled={state === "submitting"}
-          className="rounded-full bg-yc-orange text-white font-semibold px-8 py-3 hover:bg-yc-orange-dark transition-colors disabled:opacity-60"
+          className="bg-orange text-white font-semibold px-8 py-4 hover:bg-orange-deep transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {state === "submitting" ? "Verifying…" : "Join the directory"}
+          {state === "submitting" ? "Checking your badge…" : "Join the directory"}
         </button>
       </form>
     </main>
@@ -143,13 +203,8 @@ export default function OnboardingPage() {
 function PartyToggle({ slug, label }: { slug: string; label: string }) {
   return (
     <label className="cursor-pointer">
-      <input
-        type="checkbox"
-        name="afterParties"
-        value={slug}
-        className="peer sr-only"
-      />
-      <span className="inline-block rounded-full border border-border px-3.5 py-1.5 text-sm transition-colors peer-checked:bg-yc-orange peer-checked:text-white peer-checked:border-yc-orange hover:border-yc-orange/60">
+      <input type="checkbox" name="afterParties" value={slug} className="peer sr-only" />
+      <span className="inline-block border border-hairline bg-surface px-3 py-1.5 text-xs transition-colors peer-checked:bg-orange peer-checked:text-white peer-checked:border-orange peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-orange hover:border-slate">
         {label}
       </span>
     </label>
@@ -167,13 +222,16 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2">{label}</label>
+      <label htmlFor={name} className="block text-sm font-semibold mb-2">
+        {label}
+      </label>
       <textarea
+        id={name}
         name={name}
         placeholder={placeholder}
         required
         rows={2}
-        className="w-full border border-border rounded-xl p-3 bg-card focus:outline-none focus:ring-2 focus:ring-yc-orange/40"
+        className="w-full border border-hairline bg-surface px-4 py-3 text-sm resize-none focus:outline-none focus:border-orange transition-colors"
       />
     </div>
   );
